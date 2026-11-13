@@ -1,11 +1,44 @@
 package ro.touristsoara.logic
 
 import org.osmdroid.util.GeoPoint
+import ro.touristsoara.data.LatLngPoint
 
 object PolylineDecoder {
     /**
-     * Decodes a Google encoded polyline string (precision 5).
-     * Returns a list of GeoPoints for use in osmdroid.
+     * Decodează o polilinie codificată Google (precizie 5) în LatLngPoint (pentru logică și modele).
+     */
+    fun decodePolyline(encoded: String): List<LatLngPoint> {
+        val out = mutableListOf<LatLngPoint>()
+        var index = 0
+        var lat = 0
+        var lng = 0
+        while (index < encoded.length) {
+            var shift = 0
+            var result = 0
+            var b: Int
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            lat += if (result and 1 != 0) (result shr 1).inv() else result shr 1
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            lng += if (result and 1 != 0) (result shr 1).inv() else result shr 1
+
+            out.add(LatLngPoint(lat / 1e5, lng / 1e5))
+        }
+        return out
+    }
+
+    /**
+     * Decodează o polilinie în osmdroid GeoPoint (pentru afișare pe hartă).
      */
     fun decode(encoded: String): List<GeoPoint> {
         val poly = mutableListOf<GeoPoint>()
@@ -23,8 +56,7 @@ object PolylineDecoder {
                 result = result or ((b and 0x1f) shl shift)
                 shift += 5
             } while (b >= 0x20)
-            val dlat = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
-            lat += dlat
+            lat += if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
 
             shift = 0
             result = 0
@@ -33,11 +65,9 @@ object PolylineDecoder {
                 result = result or ((b and 0x1f) shl shift)
                 shift += 5
             } while (b >= 0x20)
-            val dlng = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
-            lng += dlng
+            lng += if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
 
-            val p = GeoPoint(lat / 1E5, lng / 1E5)
-            poly.add(p)
+            poly.add(GeoPoint(lat / 1E5, lng / 1E5))
         }
 
         return poly
