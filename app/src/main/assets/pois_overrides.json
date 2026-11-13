@@ -1,0 +1,26 @@
+{
+  "visitMinutes": {
+    "catedrala-mitropolitana": 20,
+    "palatul-baroc": 20,
+    "domul-sf-gheorghe": 15,
+    "bastionul-maria-tereza": 15,
+    "default": 10
+  },
+  "disabled": [],
+  "extra": [
+    {
+      "id": "bastionul-theresia-curte",
+      "name": "Bastionul Maria Theresia (Curtea Interioară)",
+      "nameEn": "Maria Theresa Bastion (Inner Courtyard)",
+      "description": "Zonă pietonală istorică cu galerii de artă, cafenele și secții ale Muzeului Banatului.",
+      "descriptionEn": "Historical pedestrian area with art galleries, cafes, and sections of the National Museum of Banat.",
+      "address": "Str. Hector",
+      "imagePath": "/pois/bastionul-maria-tereza.jpg",
+      "lat": 45.75693,
+      "lng": 21.23367,
+      "visitMinutes": 15,
+      "source": "team",
+      "enabled": true
+    }
+  ]
+}
