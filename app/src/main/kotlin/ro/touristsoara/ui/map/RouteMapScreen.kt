@@ -1,6 +1,7 @@
 package ro.touristsoara.ui.map
 
-<<<<<<< HEAD
+import android.graphics.Paint
+import android.view.ViewGroup
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -10,10 +11,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-=======
-import android.graphics.Paint
-import android.view.ViewGroup
->>>>>>> c316298 (v1.0)
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,7 +99,10 @@ fun RouteMapScreen(
     val currentPoi = route.stops.getOrNull(currentStopIndex) ?: route.stops.firstOrNull()
 
     // Initialize osmdroid user agent (mandatory by OSM policy)
-    remember { Configuration.getInstance().userAgentValue = "TOURISTSOARA-UniHack8" }
+    remember {
+        Configuration.getInstance().userAgentValue = "TOURISTSOARA-UniHack8"
+        true
+    }
 
     // Pre-load transit & bike data
     val transitLines = remember { TransitRepository.getTransitLines(context) }
