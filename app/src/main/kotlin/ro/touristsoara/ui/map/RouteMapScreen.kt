@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -240,28 +241,44 @@ fun RouteMapScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         // ═══════════════════════════════════════════════
-        // 1. OSM MapView (replaces the mock Canvas)
+        // 1. OSM MapView or Preview Fallback
         // ═══════════════════════════════════════════════
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                MapView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    controller.setZoom(15.5)
-                    controller.setCenter(mapCenter)
-                    mapViewRef = this
-                    rebuildOverlays(this)
-                }
-            },
-            update = { mapView ->
-                rebuildOverlays(mapView)
+        if (androidx.compose.ui.platform.LocalInspectionMode.current) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFE8F0E8)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🗺️ OpenStreetMap Timișoara Preview\n(Bega · Piste Velo · SMTT)",
+                    color = Color(0xFF1B6B48),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
-        )
+        } else {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        controller.setZoom(15.5)
+                        controller.setCenter(mapCenter)
+                        mapViewRef = this
+                        rebuildOverlays(this)
+                    }
+                },
+                update = { mapView ->
+                    rebuildOverlays(mapView)
+                }
+            )
+        }
 
         // ═══════════════════════════════════════════════
         // 2. Top Status & Navigation Controls (Dev 1 UI)
@@ -546,5 +563,27 @@ fun RouteMapScreen(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun RouteMapScreenPreview() {
+    val sampleRoute = ro.touristsoara.data.PoiDataProvider.calculateGreenRoute(
+        startName = "Piața Victoriei",
+        destinationName = "Gara de Nord",
+        budgetMinutes = 120,
+        travelMode = ro.touristsoara.model.TravelMode.WALKING,
+        interests = setOf(ro.touristsoara.model.Interest.HISTORY),
+        language = Language.RO
+    )
+    ro.touristsoara.ui.theme.TouristsoaraTheme {
+        RouteMapScreen(
+            route = sampleRoute,
+            currentLanguage = Language.RO,
+            onBackToInput = {},
+            onOpenPoiDetail = {},
+            onFinishTour = {}
+        )
     }
 }
