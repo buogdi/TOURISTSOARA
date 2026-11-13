@@ -6,11 +6,11 @@ plugins {
 
 android {
   namespace = "ro.touristsoara"
-  compileSdk = 37
+  compileSdk = 36
   defaultConfig {
     applicationId = "ro.touristsoara"
     minSdk = 24
-    targetSdk = 37
+    targetSdk = 36
     versionCode = 1
     versionName = "1.0"
   }
@@ -39,10 +39,6 @@ android {
   }
 }
 
-kotlin {
-  jvmToolchain(17)
-}
-
 dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
@@ -52,6 +48,12 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
+
+  // Serialization
+  implementation(libs.kotlinx.serialization.json)
+
+  // Map (osmdroid)
+  implementation(libs.osmdroid.android)
 
   // Arch Components
   implementation(libs.androidx.lifecycle.runtime.compose)
