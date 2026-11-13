@@ -1,4 +1,4 @@
-package ro.touristsoara.ui.main
+  package ro.touristsoara.ui.main
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
