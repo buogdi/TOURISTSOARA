@@ -31,9 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,7 +57,6 @@ import ro.touristsoara.model.Poi
 import ro.touristsoara.ui.theme.GroundedGeminiGradientEnd
 import ro.touristsoara.ui.theme.GroundedGeminiGradientStart
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PoiDetailSheet(
     poi: Poi,
