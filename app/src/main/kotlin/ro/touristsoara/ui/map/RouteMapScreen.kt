@@ -1,5 +1,6 @@
 package ro.touristsoara.ui.map
 
+<<<<<<< HEAD
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,6 +10,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+=======
+import android.graphics.Paint
+import android.view.ViewGroup
+>>>>>>> c316298 (v1.0)
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,14 +31,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsTransit
-import androidx.compose.material.icons.filled.EmojiNature
 import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,6 +49,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,18 +57,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polyline
+import ro.touristsoara.data.repository.TransitRepository
 import ro.touristsoara.model.Language
 import ro.touristsoara.model.Poi
 import ro.touristsoara.model.RouteResult
@@ -85,183 +91,181 @@ fun RouteMapScreen(
     onFinishTour: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     var showBikeLanes by remember { mutableStateOf(true) }
     var showTransitLines by remember { mutableStateOf(true) }
 
-    // Simulation index for Demo (F7)
+    // Simulation index for Demo
     var currentStopIndex by remember { mutableIntStateOf(0) }
     val currentPoi = route.stops.getOrNull(currentStopIndex) ?: route.stops.firstOrNull()
 
-    // Pulse animation for user location marker
-    val infiniteTransition = rememberInfiniteTransition(label = "UserPulse")
-    val pulseRadius by infiniteTransition.animateFloat(
-        initialValue = 10f,
-        targetValue = 28f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "PulseRadius"
-    )
+    // Initialize osmdroid user agent (mandatory by OSM policy)
+    remember { Configuration.getInstance().userAgentValue = "TOURISTSOARA-UniHack8" }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // Map Canvas: Stylized Vector Map of Timișoara
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val width = size.width
-            val height = size.height
+    // Pre-load transit & bike data
+    val transitLines = remember { TransitRepository.getTransitLines(context) }
+    val bikeLanes = remember { TransitRepository.getBikeLanes() }
 
-            // Background City Grid Tint
-            drawRect(color = Color(0xFFF3F6F3))
+    // Map center: first POI or Piața Victoriei
+    val mapCenter = remember {
+        val first = route.stops.firstOrNull()
+        if (first != null) GeoPoint(first.lat, first.lng) else GeoPoint(45.7535, 21.2255)
+    }
 
-            // Bega Canal Flowing across the city (curves through center)
-            val begaPath = Path().apply {
-                moveTo(0f, height * 0.68f)
-                cubicTo(
-                    width * 0.3f, height * 0.65f,
-                    width * 0.6f, height * 0.73f,
-                    width, height * 0.69f
-                )
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+
+    // Manage MapView Android Lifecycle
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapViewRef?.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapViewRef?.onPause()
+                else -> {}
             }
-            drawPath(
-                path = begaPath,
-                color = Color(0xFFB3E5FC),
-                style = Stroke(width = 36f, cap = StrokeCap.Round)
-            )
-            drawPath(
-                path = begaPath,
-                color = Color(0xFF81D4FA),
-                style = Stroke(width = 24f, cap = StrokeCap.Round)
-            )
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapViewRef?.onDetach()
+        }
+    }
 
-            // Parks along Bega (Parcul Rozelor, Parcul Central)
-            drawCircle(
-                color = Color(0xFFC8E6C9).copy(alpha = 0.7f),
-                radius = 70f,
-                center = Offset(width * 0.35f, height * 0.60f)
-            )
-            drawCircle(
-                color = Color(0xFFC8E6C9).copy(alpha = 0.7f),
-                radius = 80f,
-                center = Offset(width * 0.70f, height * 0.62f)
-            )
+    // Helper: rebuild overlays (called on factory and on toggle changes)
+    fun rebuildOverlays(mapView: MapView) {
+        mapView.overlays.clear()
 
-            // Historic Citadel / Cetate Square Area
-            drawRoundRect(
-                color = Color(0xFFFFECB3).copy(alpha = 0.35f),
-                topLeft = Offset(width * 0.20f, height * 0.22f),
-                size = androidx.compose.ui.geometry.Size(width * 0.60f, height * 0.32f),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(30f, 30f)
-            )
-
-            // Layer 1: OSM Bike Lanes (Green dashed lines)
-            if (showBikeLanes) {
-                val bikeLane1 = Path().apply {
-                    moveTo(width * 0.05f, height * 0.72f)
-                    lineTo(width * 0.95f, height * 0.72f)
+        // --- Layer 1: Transit polylines ---
+        if (showTransitLines) {
+            transitLines.forEach { line ->
+                val polyline = Polyline(mapView).apply {
+                    setPoints(line.points)
+                    outlinePaint.apply {
+                        color = try {
+                            android.graphics.Color.parseColor("#${line.colorHex}")
+                        } catch (_: Exception) {
+                            TransitBlue.toArgb()
+                        }
+                        strokeWidth = 5f
+                        style = Paint.Style.STROKE
+                        isAntiAlias = true
+                        alpha = 180
+                    }
+                    infoWindow = null
                 }
-                drawPath(
-                    path = bikeLane1,
-                    color = BikeLaneGreen,
-                    style = Stroke(width = 7f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f))
-                )
-                val bikeLane2 = Path().apply {
-                    moveTo(width * 0.30f, height * 0.15f)
-                    lineTo(width * 0.30f, height * 0.85f)
-                }
-                drawPath(
-                    path = bikeLane2,
-                    color = BikeLaneGreen,
-                    style = Stroke(width = 7f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f))
-                )
+                mapView.overlays.add(polyline)
             }
-
-            // Layer 2: SMTT Public Transit Lines (Tram / Bus)
-            if (showTransitLines) {
-                val tram1 = Path().apply {
-                    moveTo(width * 0.10f, height * 0.38f)
-                    lineTo(width * 0.90f, height * 0.38f)
-                }
-                drawPath(
-                    path = tram1,
-                    color = TransitBlue,
-                    style = Stroke(width = 6f)
-                )
-                val tram2 = Path().apply {
-                    moveTo(width * 0.75f, height * 0.10f)
-                    lineTo(width * 0.75f, height * 0.80f)
-                }
-                drawPath(
-                    path = tram2,
-                    color = Color(0xFFFFA000),
-                    style = Stroke(width = 6f)
-                )
-            }
-
-            // Selected Green Route Polyline
-            val stopPoints = listOf(
-                Offset(width * 0.26f, height * 0.48f), // Piața Victoriei / Catedrala
-                Offset(width * 0.36f, height * 0.36f), // Palatul Culturii / Lloyd
-                Offset(width * 0.50f, height * 0.31f), // Piața Libertății
-                Offset(width * 0.62f, height * 0.26f), // Piața Unirii / Domul
-                Offset(width * 0.76f, height * 0.34f)  // Bastionul Theresia
-            )
-
-            val routePath = Path()
-            stopPoints.forEachIndexed { index, point ->
-                if (index == 0) routePath.moveTo(point.x, point.y)
-                else routePath.lineTo(point.x, point.y)
-            }
-
-            // Draw route shadow & main active green line
-            drawPath(
-                path = routePath,
-                color = Color(0x331B6B48),
-                style = Stroke(width = 14f, cap = StrokeCap.Round)
-            )
-            drawPath(
-                path = routePath,
-                color = Color(0xFF1B6B48),
-                style = Stroke(width = 8f, cap = StrokeCap.Round)
-            )
-
-            // Draw POI markers on map
-            stopPoints.forEachIndexed { index, point ->
-                val isCurrent = index == currentStopIndex
-                val markerColor = if (isCurrent) Color(0xFFD48806) else Color(0xFF1B6B48)
-
-                // Pin circle
-                drawCircle(
-                    color = Color.White,
-                    radius = if (isCurrent) 20f else 16f,
-                    center = point
-                )
-                drawCircle(
-                    color = markerColor,
-                    radius = if (isCurrent) 16f else 12f,
-                    center = point
-                )
-            }
-
-            // Current simulated user location marker with radar pulse
-            val activePoint = stopPoints.getOrElse(currentStopIndex) { stopPoints.first() }
-            drawCircle(
-                color = Color(0x442196F3),
-                radius = pulseRadius,
-                center = activePoint
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 12f,
-                center = activePoint
-            )
-            drawCircle(
-                color = Color(0xFF1976D2),
-                radius = 8f,
-                center = activePoint
-            )
         }
 
-        // Top Status & Navigation Controls
+        // --- Layer 2: Bike lanes (green dashed) ---
+        if (showBikeLanes) {
+            bikeLanes.forEach { lane ->
+                val polyline = Polyline(mapView).apply {
+                    setPoints(lane)
+                    outlinePaint.apply {
+                        color = BikeLaneGreen.toArgb()
+                        strokeWidth = 7f
+                        style = Paint.Style.STROKE
+                        pathEffect = android.graphics.DashPathEffect(floatArrayOf(25f, 12f), 0f)
+                        isAntiAlias = true
+                    }
+                    infoWindow = null
+                }
+                mapView.overlays.add(polyline)
+            }
+        }
+
+        // --- Layer 3: Green Route Polyline (connects all stops) ---
+        if (route.stops.size >= 2) {
+            val routePoints = route.stops.map { GeoPoint(it.lat, it.lng) }
+            // Shadow
+            val shadowLine = Polyline(mapView).apply {
+                setPoints(routePoints)
+                outlinePaint.apply {
+                    color = android.graphics.Color.argb(50, 27, 107, 72)
+                    strokeWidth = 16f
+                    style = Paint.Style.STROKE
+                    strokeCap = Paint.Cap.ROUND
+                    isAntiAlias = true
+                }
+                infoWindow = null
+            }
+            mapView.overlays.add(shadowLine)
+            // Main green line
+            val routeLine = Polyline(mapView).apply {
+                setPoints(routePoints)
+                outlinePaint.apply {
+                    color = android.graphics.Color.parseColor("#1B6B48")
+                    strokeWidth = 8f
+                    style = Paint.Style.STROKE
+                    strokeCap = Paint.Cap.ROUND
+                    isAntiAlias = true
+                }
+                infoWindow = null
+            }
+            mapView.overlays.add(routeLine)
+        }
+
+        // --- Layer 4: POI Markers ---
+        route.stops.forEachIndexed { index, poi ->
+            val isCurrent = index == currentStopIndex
+            val marker = Marker(mapView).apply {
+                position = GeoPoint(poi.lat, poi.lng)
+                title = "${index + 1}. ${poi.getDisplayName(currentLanguage)}"
+                snippet = poi.address ?: "Timișoara"
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                setOnMarkerClickListener { _, _ ->
+                    showInfoWindow()
+                    onOpenPoiDetail(poi)
+                    true
+                }
+            }
+            mapView.overlays.add(marker)
+        }
+
+        // --- Layer 5: User / simulation marker (blue dot at current stop) ---
+        val activeStop = route.stops.getOrNull(currentStopIndex) ?: route.stops.firstOrNull()
+        if (activeStop != null) {
+            val userMarker = Marker(mapView).apply {
+                position = GeoPoint(activeStop.lat, activeStop.lng)
+                title = if (currentLanguage == Language.RO) "Locația ta (simulată)" else "Your location (simulated)"
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            }
+            mapView.overlays.add(userMarker)
+        }
+
+        mapView.invalidate()
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        // ═══════════════════════════════════════════════
+        // 1. OSM MapView (replaces the mock Canvas)
+        // ═══════════════════════════════════════════════
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                MapView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    controller.setZoom(15.5)
+                    controller.setCenter(mapCenter)
+                    mapViewRef = this
+                    rebuildOverlays(this)
+                }
+            },
+            update = { mapView ->
+                rebuildOverlays(mapView)
+            }
+        )
+
+        // ═══════════════════════════════════════════════
+        // 2. Top Status & Navigation Controls (Dev 1 UI)
+        // ═══════════════════════════════════════════════
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -289,7 +293,7 @@ fun RouteMapScreen(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Time Buffer & Schedule Status Banner (F2 / F3)
+                // Time Buffer & Schedule Status Banner
                 ElevatedCard(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
@@ -341,7 +345,7 @@ fun RouteMapScreen(
                 }
             }
 
-            // Layer Toggle Chips (F8 & F9)
+            // Layer Toggle Chips
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -384,12 +388,17 @@ fun RouteMapScreen(
             }
         }
 
-        // Floating Demo Action: "Simulează Sosirea" (F7)
+        // ═══════════════════════════════════════════════
+        // 3. Floating Demo Action: "Simulează Sosirea"
+        // ═══════════════════════════════════════════════
         FloatingActionButton(
             onClick = {
-                // Step forward to next POI or loop
                 currentStopIndex = (currentStopIndex + 1) % route.stops.size
-                currentPoi?.let { onOpenPoiDetail(it) }
+                val nextPoi = route.stops.getOrNull(currentStopIndex)
+                if (nextPoi != null) {
+                    mapViewRef?.controller?.animateTo(GeoPoint(nextPoi.lat, nextPoi.lng))
+                    onOpenPoiDetail(nextPoi)
+                }
             },
             shape = RoundedCornerShape(16.dp),
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -412,7 +421,9 @@ fun RouteMapScreen(
             }
         }
 
-        // Attribution Badge (OSM, SMTT, Primăria TM)
+        // ═══════════════════════════════════════════════
+        // 4. Attribution Badge (OSM, SMTT, Primăria TM)
+        // ═══════════════════════════════════════════════
         Surface(
             shape = RoundedCornerShape(6.dp),
             color = Color.Black.copy(alpha = 0.55f),
@@ -428,7 +439,9 @@ fun RouteMapScreen(
             )
         }
 
-        // Bottom Sheet / Card: Current Landmark on Route
+        // ═══════════════════════════════════════════════
+        // 5. Bottom Card: Current Landmark on Route
+        // ═══════════════════════════════════════════════
         if (currentPoi != null) {
             Card(
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -533,27 +546,5 @@ fun RouteMapScreen(
                 }
             }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RouteMapScreenPreview() {
-    val sampleRoute = ro.touristsoara.data.PoiDataProvider.calculateGreenRoute(
-        startName = "Piața Victoriei",
-        destinationName = "Gara de Nord",
-        budgetMinutes = 120,
-        travelMode = ro.touristsoara.model.TravelMode.WALKING,
-        interests = setOf(ro.touristsoara.model.Interest.HISTORY),
-        language = Language.RO
-    )
-    ro.touristsoara.ui.theme.TouristsoaraTheme {
-        RouteMapScreen(
-            route = sampleRoute,
-            currentLanguage = Language.RO,
-            onBackToInput = {},
-            onOpenPoiDetail = {},
-            onFinishTour = {}
-        )
     }
 }
