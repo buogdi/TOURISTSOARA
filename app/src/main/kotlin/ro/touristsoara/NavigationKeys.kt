@@ -9,6 +9,9 @@ import ro.touristsoara.model.RouteResult
 data object Main : NavKey
 
 @Serializable
+data object Map : NavKey
+
+@Serializable
 data object ScreenInputKey : NavKey
 
 @Serializable

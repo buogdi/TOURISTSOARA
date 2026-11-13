@@ -11,6 +11,7 @@ import androidx.navigation3.ui.NavDisplay
 import ro.touristsoara.data.PoiDataProvider
 import ro.touristsoara.model.Language
 import ro.touristsoara.ui.input.InputScreen
+import ro.touristsoara.ui.map.MapScreen
 import ro.touristsoara.ui.map.RouteMapScreen
 import ro.touristsoara.ui.poi.PoiDetailSheet
 import ro.touristsoara.ui.poimanager.PoiListScreen
@@ -26,6 +27,9 @@ fun MainNavigation() {
         onBack = { backStack.removeLastOrNull() },
         entryProvider =
             entryProvider {
+                entry<Map> {
+                    MapScreen()
+                }
                 entry<Main> {
                     InputScreen(
                         currentLanguage = currentLanguage,
