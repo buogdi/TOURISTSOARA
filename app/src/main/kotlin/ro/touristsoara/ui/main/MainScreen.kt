@@ -25,7 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import ro.touristsoara.R
 import ro.touristsoara.data.DefaultDataRepository
-import ro.touristsoara.data.Poi
+import ro.touristsoara.model.Poi
 import ro.touristsoara.ui.arrival.ArrivalViewModel
 import ro.touristsoara.ui.card.PoiArrivalDialog
 import ro.touristsoara.ui.theme.TouristsoaraTheme

@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 data class AiText(
     val history: String,
     val funFact: String,
-    val mustSee: String
+    val mustSee: String,
+    val isGrounded: Boolean = true
 )
 
 @Serializable

@@ -1,6 +1,6 @@
 package ro.touristsoara.logic
 
-import ro.touristsoara.data.Poi
+import ro.touristsoara.model.Poi
 
 /**
  * Rezultatul detectării apropierii de un obiectiv turistic.

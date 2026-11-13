@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import ro.touristsoara.data.AiText
-import ro.touristsoara.data.Poi
+import ro.touristsoara.model.AiText
+import ro.touristsoara.model.Poi
 import kotlin.math.roundToInt
 
 /**

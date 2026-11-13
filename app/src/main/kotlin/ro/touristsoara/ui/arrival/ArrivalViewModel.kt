@@ -7,10 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import ro.touristsoara.data.AiText
 import ro.touristsoara.data.GeminiRepository
-import ro.touristsoara.data.Poi
 import ro.touristsoara.logic.GeofenceChecker
+import ro.touristsoara.model.AiText
+import ro.touristsoara.model.Poi
 
 /**
  * Starea UI pentru ecranul / dialogul de sosire la obiectiv.
