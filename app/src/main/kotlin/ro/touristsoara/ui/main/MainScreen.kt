@@ -25,6 +25,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import ro.touristsoara.R
 import ro.touristsoara.data.DefaultDataRepository
+import ro.touristsoara.data.Poi
+import ro.touristsoara.ui.arrival.ArrivalViewModel
+import ro.touristsoara.ui.card.PoiArrivalDialog
 import ro.touristsoara.ui.theme.TouristsoaraTheme
 
 @Composable
@@ -54,7 +57,13 @@ fun MainScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun MainScreen(data: List<String>, modifier: Modifier = Modifier) {
+internal fun MainScreen(
+  data: List<String>,
+  modifier: Modifier = Modifier,
+  arrivalViewModel: ArrivalViewModel = viewModel()
+) {
+  val arrivalState by arrivalViewModel.uiState.collectAsStateWithLifecycle()
+
   Scaffold(
     modifier = modifier,
     topBar = {
@@ -75,15 +84,37 @@ internal fun MainScreen(data: List<String>, modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
       data.forEach { Greeting(it) }
+
       Button(
-        modifier = Modifier.padding(24.dp, 24.dp),
-        onClick = { /* Button clicked */ }
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        onClick = {
+          arrivalViewModel.simulateArrivalAt(
+            Poi(
+              id = "catedrala-mitropolitana",
+              name = "Catedrala Mitropolitană Ortodoxă",
+              address = "Bulevardul Regele Ferdinand I",
+              description = "Construită între 1936 și 1946, catedrala îmbină stilul tradițional moldovenesc cu cel bizantin. Prin suplețea proporțiilor și eleganța compoziției a devenit imediat unul dintre simbolurile orașului. Având o înălțime de 90 m, a fost până în 2018 cea mai înaltă biserică din România.",
+              lat = 45.7507,
+              lng = 21.22423,
+              visitMinutes = 20
+            )
+          )
+        }
       ) {
-        Text("OK")
+        Text("🎯 Simulează sosire F4 (<50 m)")
       }
 
-      // TODO: Extend app UI with more Jetpack Compose UI elements here
-
+      // Dialogul de sosire F4
+      if (arrivalState.isArrivalDialogVisible && arrivalState.currentPoi != null) {
+        PoiArrivalDialog(
+          poi = arrivalState.currentPoi!!,
+          distanceMeters = arrivalState.distanceMeters,
+          aiText = arrivalState.aiSummary,
+          isLoadingAi = arrivalState.isLoadingAi,
+          onContinueRoute = { arrivalViewModel.onContinueRoute() },
+          onDismiss = { arrivalViewModel.onDismissDialog() }
+        )
+      }
     }
   }
 }
